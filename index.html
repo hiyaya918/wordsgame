@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>英语单词记忆游戏</title>
+    
+    <!-- PWA支持 -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#4A90E2">
+    <link rel="apple-touch-icon" href="./icons/icon-192x192.png">
+    
+    <!-- 字体优化加载 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <style>
+        /* 加载页样式 */
+        .loading-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #f2f7ff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease-out;
+        }
+
+        .loading-title {
+            font-size: 2rem;
+            color: var(--primary-dark);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(67, 97, 238, 0.2);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-progress {
+            margin-top: 15px;
+            font-size: 1rem;
+            color: var(--primary-dark);
+        }
+
+        /* 确保字体在加载时不会阻塞渲染 */
+        @font-face {
+            font-family: 'Noto Sans SC';
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'Nunito';
+            font-display: swap;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* 基础色彩 */
+            --primary-color: #4361ee;
+            --primary-light: #4895ef;
+            --primary-dark: #3a0ca3;
+            --secondary-color: #f83173;
+            --secondary-light: #df345f;
+            --accent-color: #4cc9f0;
+            
+            /* 卡片色彩 */
+            --card-color-1: #4361ee;
+            --card-color-2: #3a86ff;
+            --card-color-3: #38b000;
+            --card-color-4: #fb5607;
+            --card-color-5: #ff006e;
+            --card-color-6: #8338ec;
+            --card-color-7: #ffbe0b; 
+            
+            /* 状态色彩 */
+            --success-color: #4cd97b;
+            --warning-color: #ffcc00;
+            --match-color-1: #06d6a0;
+            --match-color-2: #1b9aaa;
+            
+            /* 中性色 */
+            --neutral-light: #f8f9fa;
+            --neutral-medium: #e9ecef;
+            --neutral-dark: #343a40;
+            --text-light: #f8f9fa;
+            --text-dark: #212529;
+            
+            /* 阴影 */
+            --shadow-sm: 0 2px 5px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 10px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.12);
+            
+            /* 圆角 */
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 20px;
+            --radius-xl: 30px;
+            --radius-circle: 50%;
+            
+            /* 间距 */
+            --spacing-xs: 5px;
+            --spacing-sm: 10px;
+            --spacing-md: 15px;
+            --spacing-lg: 25px;
+            --spacing-xl: 40px;
+            
+            /* 字体 */
+            --font-main: 'Noto Sans SC', 'Nunito', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background: linear-gradient(135deg, #a9c9ff 0%, #ffbbec 100%);
+            min-height: 100vh;
+            padding: var(--spacing-md);
+            color: var(--text-dark);
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: var(--spacing-xl);
+            padding: var(--spacing-lg);
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            backdrop-filter: blur(5px);
+        }
+
+        .header h1 {
+            font-size: clamp(1.2rem, 3.8vw, 2.8rem);
+            color: var(--primary-dark);
+            margin-bottom: var(--spacing-sm);
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            text-shadow: 0px 2px 1px rgba(253, 200, 237, 0.8);
+            background: linear-gradient(45deg, var(--primary-dark), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            color: #7fadbd; /* 浅蓝色 */
+            font-size: clamp(1rem, 2vw, 1.5rem);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-lg);
+        }
+
+        .controls {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            box-shadow: var(--shadow-md);
+            backdrop-filter: blur(5px);
+        }
+
+        .unit-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-md);
+            padding: var(--spacing-sm);
+            background-color: var(--neutral-light);
+            border-radius: var(--radius-sm);
+        }
+
+        .btn {
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: clamp(0.9rem, 1.5vw, 1rem);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: var(--primary-color);
+            color: var(--text-light);
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(255,255,255,0.1), rgba(255,255,255,0));
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            z-index: -1;
+        }
+
+        .btn:hover::after {
+            opacity: 1;
+        }
+
+        .btn:active {
+            transform: translateY(2px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .mode-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-sm);
+            justify-content: center;
+        }
+
+        .btn.mode-btn {
+            background: var(--secondary-color);
+            flex: 1;
+            min-width: 120px;
+            padding: var(--spacing-md);
+        }
+
+        .btn.mode-btn:hover {
+            background: var(--secondary-light);
+        }
+
+        .game-board {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            box-shadow: var(--shadow-lg);
+            min-height: 400px;
+            position: relative;
+            backdrop-filter: blur(5px);
+            overflow: hidden;
+        }
+
+        .game-board::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-light), var(--secondary-color));
+            z-index: 1;
+        }
+
+        .cards-container {
+            position: relative;
+            width: 100%;
+            min-height: 400px;
+            margin: 0 auto;
+            padding: var(--spacing-md);
+        }
+
+        .card {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 110px;
+            width: 130px;
+            padding: var(--spacing-md);
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            color: var(--text-light);
+            font-size: clamp(0.9rem, 2vw, 1.1rem);
+            text-align: center;
+            word-break: break-word;
+            user-select: none;
+            position: absolute;
+            font-weight: 600;
+            box-shadow: var(--shadow-md);
+            will-change: transform;
+            z-index: 2;
+        }
+
+        /* 卡片随机形状 */
+        .card:nth-child(5n+1) {
+            border-radius: var(--radius-sm);
+            background: var(--card-color-1);
+        }
+        
+        .card:nth-child(5n+2) {
+            border-radius: var(--radius-lg);
+            background: var(--card-color-2);
+        }
+        
+        .card:nth-child(5n+3) {
+            border-radius: var(--radius-md) var(--radius-circle) var(--radius-md) var(--radius-md);
+            background: var(--card-color-3);
+        }
+        
+        .card:nth-child(5n+4) {
+            border-radius: var(--radius-md);
+            background: var(--card-color-4);
+        }
+        
+        .card:nth-child(5n+5) {
+            border-radius: var(--radius-circle) var(--radius-md) var(--radius-md) var(--radius-md);
+            background: var(--card-color-5);
+        }
+
+        /* 特殊卡片形状 */
+        .card.card-shape-oval {
+            border-radius: var(--radius-xl);
+        }
+        
+        .card.card-shape-droplet {
+            border-radius: 50% 50% 50% 5px;
+        }
+        
+        .card.card-shape-pebble {
+            border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+        }
+        
+        .card.card-shape-cloud {
+            border-radius: 50% 50% 20% 20% / 50% 50% 20% 20%;
+        }
+
+        /* 卡片随机旋转 */
+        .card:nth-child(7n+1), .card:nth-child(7n+2), .card:nth-child(7n+3), 
+        .card:nth-child(7n+4), .card:nth-child(7n+5), .card:nth-child(7n+6), .card:nth-child(7n+7) { 
+            transform: none; 
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 60%);
+            z-index: 1;
+            pointer-events: none;
+            border-radius: inherit;
+        }
+
+        .card:hover {
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: var(--shadow-lg);
+            z-index: 5;
+        }
+
+        /* 匹配状态 */
+        .card.matched {
+            background: var(--match-color-1);
+            color: var(--text-dark);
+            animation: matchSuccess 0.5s ease forwards;
+        }
+
+        .card.matched:nth-child(2n) {
+            background: var(--match-color-2);
+        }
+
+        @keyframes matchSuccess {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1.05); }
+        }
+
+        /* 选中状态 */
+        .card.selected {
+            background: var(--warning-color);
+            color: var(--text-dark);
+            box-shadow: 0 0 0 3px var(--warning-color), var(--shadow-md);
+            animation: pulse 1.5s infinite;
+            z-index: 10;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 204, 0, 0.7), var(--shadow-md); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 204, 0, 0), var(--shadow-md); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 204, 0, 0), var(--shadow-md); }
+        }
+
+        /* 记忆翻牌效果 */
+        .card.flipped {
+            transform: scale(1.05);
+            background: var(--accent-color);
+            z-index: 5;
+        }
+
+        .game-status {
+            text-align: center;
+            padding: var(--spacing-md);
+            font-size: clamp(0.9rem, 2vw, 1.1rem);
+            color: var(--text-dark);
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: var(--radius-md);
+            margin-top: var(--spacing-md);
+            box-shadow: var(--shadow-sm);
+            font-weight: 500;
+        }
+
+        .spelling-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--spacing-lg);
+            padding: var(--spacing-lg);
+        }
+
+        .spelling-prompt {
+            font-size: clamp(1.2rem, 3vw, 1.8rem);
+            color: var(--primary-dark);
+            text-align: center;
+            margin-bottom: var(--spacing-md);
+            font-weight: 600;
+        }
+
+        .spelling-input {
+            font-size: clamp(1rem, 2.5vw, 1.5rem);
+            padding: var(--spacing-md) var(--spacing-lg);
+            border: 2px solid var(--primary-light);
+            border-radius: var(--radius-sm);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .spelling-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.3);
+        }
+
+        /* 卡片匹配成功的对数 */
+        .matched-pairs {
+            position: absolute;
+            top: var(--spacing-md);
+            right: var(--spacing-md);
+            background: var(--match-color-1);
+            color: var(--text-dark);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            font-weight: 600;
+            z-index: 10;
+        }
+
+        @media (max-width: 768px) {
+            :root {
+                --spacing-lg: 20px;
+                --spacing-xl: 30px;
+            }
+
+            .mode-buttons {
+                flex-direction: column;
+            }
+            
+            .card {
+                min-height: 67px;
+                width: 79px;
+            }
+            
+            .cards-container {
+                gap: 5px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            :root {
+                --spacing-md: 10px;
+                --spacing-lg: 15px;
+            }
+
+            .header {
+                padding: var(--spacing-md);
+            }
+
+            .cards-container {
+                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+                gap: 5px;
+            }
+
+            .card {
+                min-height: 67px;
+                width: 79px;
+                padding: var(--spacing-sm);
+            }
+        }
+
+        /* 深色模式支持 */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary-light: #4895ef;
+                --primary-dark: #7209b7;
+                --neutral-light: #212529;
+                --neutral-medium: #343a40;
+                --neutral-dark: #f8f9fa;
+                --text-light: #f8f9fa;
+                --text-dark: #e9ecef;
+            }
+
+            body {
+                background: linear-gradient(135deg, #0f172a 0%, #4a1942 100%);
+            }
+
+            .header h1 {
+                text-shadow: 1px 1px 0px rgba(0,0,0,0.3);
+            }
+
+            .header, .controls, .game-board, .game-status {
+                background-color: rgba(33, 37, 41, 0.85);
+            }
+
+            .unit-buttons {
+                background-color: var(--neutral-medium);
+            }
+            
+            .loading-container {
+                background-color: #121212;
+            }
+            
+            .loading-title, .loading-progress {
+                color: var(--primary-light);
+            }
+        }
+
+        /* 减少动画，提高可访问性 */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation: none !important;
+                transition: none !important;
+            }
+
+            .card {
+                transform: none !important;
+            }
+        }
+
+        /* 卡片完成游戏庆祝动画 */
+        @keyframes celebrate {
+            0% { transform: scale(1); }
+            25% { transform: scale(1.1) rotate(5deg); }
+            50% { transform: scale(1.1) rotate(-5deg); }
+            75% { transform: scale(1.1) rotate(3deg); }
+            100% { transform: scale(1) rotate(0); }
+        }
+
+        .celebrate {
+            animation: celebrate 0.5s ease-in-out;
+        }
+
+        /* 添加更明显的选中单元按钮样式 */
+        .btn.active {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            position: relative;
+            font-weight: bold;
+        }
+
+        /* 添加指示标记 */
+        .btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 8px;
+            background-color: var(--primary-dark);
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <!-- 加载页面 -->
+    <div class="loading-container" id="loadingScreen">
+        <h2 class="loading-title">单词记忆游戏正在加载...</h2>
+        <div class="loading-spinner"></div>
+        <div class="loading-progress" id="loadingProgress">正在准备游戏资源</div>
+    </div>
+
+    <div class="container">
+        <header class="header">
+            <h1>小学6年级英语教材下册沪教版</h1>
+            <p>英语单词记忆游戏</p>
+        </header>
+
+        <main class="game-container">
+            <div class="controls">
+                <div class="unit-buttons" id="unitButtons"></div>
+                <div class="mode-buttons">
+                    <button class="btn mode-btn" onclick="startMatchingGame()">单词消消乐</button>
+                    <button class="btn mode-btn" onclick="startMemoryGame()">记忆翻牌</button>
+                    <button class="btn mode-btn" onclick="startSpellingGame()">拼写练习</button>
+                </div>
+            </div>
+
+            <div class="game-board" id="gameBoard"></div>
+            <div class="game-status" id="gameStatus">请选择单元开始游戏</div>
+        </main>
+    </div>
+    <script src="game.js"></script>
+    <script>
+        // 注册Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker 注册成功: ', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('ServiceWorker 注册失败: ', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html> 

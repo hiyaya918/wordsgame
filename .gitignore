@@ -1,0 +1,37 @@
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 编辑器和IDE文件
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# 临时文件
+*.log
+*.tmp
+*.bak
+
+# 不需要提交的图片（如果需要排除图片，取消注释）
+# *.png
+# *.jpg
+# *.jpeg
+# *.gif
+
+# Node.js(如果将来使用)
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# 生产环境构建文件(如果将来使用)
+/dist
+/build
+
+# 本地环境变量(如果将来使用)
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local 
